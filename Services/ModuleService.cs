@@ -337,7 +337,8 @@ public class ModuleService : IModuleService
             ServiceRunning = servicePodStatus?.IsRunning ?? false,
             PodStatus = servicePodStatus?.Status,
             MfePodStatus = mfePodStatus?.Status,
-            FieldValues = module.ServiceFieldValues
+            FieldValues = module.ServiceFieldValues,
+            ServiceNodePort = module.ServiceNodePort > 0 ? module.ServiceNodePort : null
         };
     }
 

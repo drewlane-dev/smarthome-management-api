@@ -101,5 +101,6 @@ public class ModuleStatusResponse
     public string? PodStatus { get; set; }
     public string? MfePodStatus { get; set; }
     public Dictionary<string, string>? FieldValues { get; set; }
+    public int? ServiceNodePort { get; set; }
     public string? Message { get; set; }
 }

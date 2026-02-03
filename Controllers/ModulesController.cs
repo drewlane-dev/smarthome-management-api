@@ -10,15 +10,18 @@ public class ModulesController : ControllerBase
 {
     private readonly IModuleService _moduleService;
     private readonly IGitHubService _gitHubService;
+    private readonly IKnownModulesService _knownModulesService;
     private readonly ILogger<ModulesController> _logger;
 
     public ModulesController(
         IModuleService moduleService,
         IGitHubService gitHubService,
+        IKnownModulesService knownModulesService,
         ILogger<ModulesController> logger)
     {
         _moduleService = moduleService;
         _gitHubService = gitHubService;
+        _knownModulesService = knownModulesService;
         _logger = logger;
     }
 
@@ -29,6 +32,20 @@ public class ModulesController : ControllerBase
     public ActionResult<IEnumerable<InstalledModule>> GetModules()
     {
         return Ok(_moduleService.GetInstalledModules());
+    }
+
+    /// <summary>
+    /// Get all known (pre-approved) modules available for installation
+    /// </summary>
+    [HttpGet("known")]
+    public async Task<ActionResult<IEnumerable<KnownModule>>> GetKnownModules()
+    {
+        var knownModules = await _knownModulesService.GetKnownModulesAsync();
+        var installedNames = _moduleService.GetInstalledModules().Select(m => m.Name).ToHashSet();
+
+        // Return known modules that aren't already installed
+        var available = knownModules.Where(km => !installedNames.Contains(km.Name));
+        return Ok(available);
     }
 
     /// <summary>

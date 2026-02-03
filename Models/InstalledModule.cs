@@ -38,6 +38,20 @@ public class InstalledModule
 }
 
 /// <summary>
+/// A pre-approved known module that can be installed
+/// </summary>
+public class KnownModule
+{
+    [BsonId]
+    public required string Name { get; set; }
+    public required string DisplayName { get; set; }
+    public string? Description { get; set; }
+    public required string RepoUrl { get; set; }
+    public string? Icon { get; set; }
+    public string? Color { get; set; }
+}
+
+/// <summary>
 /// Request to install a module from GitHub
 /// </summary>
 public class InstallModuleRequest

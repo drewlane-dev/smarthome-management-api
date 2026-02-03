@@ -11,6 +11,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 builder.Services.AddSingleton<IGitHubService, GitHubService>();
 builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
+builder.Services.AddSingleton<IKnownModulesService, KnownModulesService>();
 builder.Services.AddSingleton<IModuleService, ModuleService>();
 
 // Configure CORS - allow all origins for internal network

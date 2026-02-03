@@ -1,0 +1,20 @@
+{
+  "modules": [
+    {
+      "name": "terraria",
+      "displayName": "Terraria Server",
+      "description": "Host a Terraria multiplayer server on your home network",
+      "repoUrl": "https://github.com/drewlane-dev/smarthome-terraria-module",
+      "icon": "sports_esports",
+      "color": "#05C46B"
+    },
+    {
+      "name": "spotify",
+      "displayName": "Spotify Remote",
+      "description": "Control Spotify playback on your smarthome speaker",
+      "repoUrl": "https://github.com/drewlane-dev/smarthome-spotify-module",
+      "icon": "music_note",
+      "color": "#1DB954"
+    }
+  ]
+}
