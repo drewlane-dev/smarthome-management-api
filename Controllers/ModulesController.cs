@@ -11,6 +11,7 @@ public class ModulesController : ControllerBase
     private readonly IModuleService _moduleService;
     private readonly IGitHubService _gitHubService;
     private readonly IKnownModulesService _knownModulesService;
+    private readonly IKubernetesService _kubernetesService;
     private readonly HttpClient _httpClient;
     private readonly ILogger<ModulesController> _logger;
 
@@ -18,12 +19,14 @@ public class ModulesController : ControllerBase
         IModuleService moduleService,
         IGitHubService gitHubService,
         IKnownModulesService knownModulesService,
+        IKubernetesService kubernetesService,
         IHttpClientFactory httpClientFactory,
         ILogger<ModulesController> logger)
     {
         _moduleService = moduleService;
         _gitHubService = gitHubService;
         _knownModulesService = knownModulesService;
+        _kubernetesService = kubernetesService;
         _httpClient = httpClientFactory.CreateClient("MfeCheck");
         _logger = logger;
     }
@@ -190,6 +193,110 @@ public class ModulesController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Check if a module's service is ready (pod running with NodePort)
+    /// </summary>
+    [HttpGet("{name}/service-ready")]
+    public async Task<ActionResult<ServiceReadyResponse>> CheckServiceReady(string name)
+    {
+        var module = _moduleService.GetInstalledModule(name);
+        if (module == null)
+        {
+            return Ok(new ServiceReadyResponse { Ready = false, Message = "Module not found" });
+        }
+
+        if (!module.ServiceDeployed)
+        {
+            return Ok(new ServiceReadyResponse { Ready = false, Message = "Service not deployed" });
+        }
+
+        // Check pod status
+        var podStatus = await _kubernetesService.GetPodStatusAsync(name);
+        if (podStatus == null)
+        {
+            return Ok(new ServiceReadyResponse
+            {
+                Ready = false,
+                PodStatus = "NotFound",
+                Message = "Pod not found"
+            });
+        }
+
+        // Check if pod is running
+        if (!podStatus.IsRunning)
+        {
+            return Ok(new ServiceReadyResponse
+            {
+                Ready = false,
+                PodStatus = podStatus.Status,
+                Message = $"Pod is {podStatus.Status}"
+            });
+        }
+
+        // Get NodePort if not already stored
+        var nodePort = module.ServiceNodePort;
+        if (nodePort <= 0)
+        {
+            nodePort = await _kubernetesService.GetServiceNodePortAsync(name) ?? 0;
+        }
+
+        if (nodePort <= 0)
+        {
+            return Ok(new ServiceReadyResponse
+            {
+                Ready = false,
+                PodStatus = podStatus.Status,
+                Message = "NodePort not assigned yet"
+            });
+        }
+
+        return Ok(new ServiceReadyResponse
+        {
+            Ready = true,
+            PodStatus = podStatus.Status,
+            NodePort = nodePort
+        });
+    }
+
+    /// <summary>
+    /// Get logs from a module's service pod
+    /// </summary>
+    [HttpGet("{name}/logs")]
+    public async Task<ActionResult<PodLogsResponse>> GetPodLogs(
+        string name,
+        [FromQuery] int? sinceSeconds = null,
+        [FromQuery] int? tailLines = null)
+    {
+        var module = _moduleService.GetInstalledModule(name);
+        if (module == null)
+        {
+            return Ok(new PodLogsResponse
+            {
+                Success = false,
+                Error = "Module not found"
+            });
+        }
+
+        if (!module.ServiceDeployed)
+        {
+            return Ok(new PodLogsResponse
+            {
+                Success = false,
+                Error = "Service not deployed"
+            });
+        }
+
+        var result = await _kubernetesService.GetPodLogsAsync(name, sinceSeconds, tailLines);
+
+        return Ok(new PodLogsResponse
+        {
+            Success = result.Success,
+            Logs = result.Logs,
+            Timestamp = result.Timestamp,
+            Error = result.Error
+        });
+    }
 }
 
 public class MfeReadyResponse
@@ -197,4 +304,20 @@ public class MfeReadyResponse
     public bool Ready { get; set; }
     public string? Message { get; set; }
     public string? Url { get; set; }
+}
+
+public class ServiceReadyResponse
+{
+    public bool Ready { get; set; }
+    public string? PodStatus { get; set; }
+    public int? NodePort { get; set; }
+    public string? Message { get; set; }
+}
+
+public class PodLogsResponse
+{
+    public bool Success { get; set; }
+    public string? Logs { get; set; }
+    public DateTime Timestamp { get; set; }
+    public string? Error { get; set; }
 }

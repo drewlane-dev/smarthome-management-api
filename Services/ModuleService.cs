@@ -303,9 +303,10 @@ public class ModuleService : IModuleService
         {
             ModuleName = name,
             IsDeployed = true,
-            IsRunning = true,
-            FieldValues = request.FieldValues,
-            Message = "Module configured successfully"
+            IsRunning = false,  // Not running yet - need to poll for pod status
+            ServiceDeployed = true,
+            ServiceRunning = false,  // Not running yet - need to poll for pod status
+            FieldValues = request.FieldValues
         };
     }
 

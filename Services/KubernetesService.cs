@@ -9,6 +9,15 @@ public interface IKubernetesService
     Task<bool> DeleteDeploymentAsync(string name);
     Task<PodStatusInfo?> GetPodStatusAsync(string deploymentName);
     Task<int?> GetServiceNodePortAsync(string serviceName);
+    Task<PodLogsResult> GetPodLogsAsync(string deploymentName, int? sinceSeconds = null, int? tailLines = null);
+}
+
+public class PodLogsResult
+{
+    public bool Success { get; set; }
+    public string? Logs { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string? Error { get; set; }
 }
 
 public class PodStatusInfo
@@ -281,6 +290,63 @@ public class KubernetesService : IKubernetesService
         {
             _logger.LogError(ex, "Failed to get NodePort for service: {Name}", serviceName);
             return null;
+        }
+    }
+
+    public async Task<PodLogsResult> GetPodLogsAsync(string deploymentName, int? sinceSeconds = null, int? tailLines = null)
+    {
+        try
+        {
+            // Find the pod for this deployment
+            var pods = await _client.CoreV1.ListNamespacedPodAsync(
+                Namespace,
+                labelSelector: $"app={deploymentName}");
+
+            var pod = pods.Items.FirstOrDefault();
+            if (pod == null)
+            {
+                return new PodLogsResult
+                {
+                    Success = false,
+                    Error = "Pod not found"
+                };
+            }
+
+            // Get logs with optional parameters
+            var logStream = await _client.CoreV1.ReadNamespacedPodLogAsync(
+                pod.Metadata.Name,
+                Namespace,
+                sinceSeconds: sinceSeconds,
+                tailLines: tailLines,
+                timestamps: true);
+
+            using var reader = new StreamReader(logStream);
+            var logs = await reader.ReadToEndAsync();
+
+            return new PodLogsResult
+            {
+                Success = true,
+                Logs = logs,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (k8s.Autorest.HttpOperationException ex)
+            when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return new PodLogsResult
+            {
+                Success = false,
+                Error = "Pod not found"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get logs for: {Name}", deploymentName);
+            return new PodLogsResult
+            {
+                Success = false,
+                Error = ex.Message
+            };
         }
     }
 }
