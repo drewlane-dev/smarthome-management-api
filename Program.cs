@@ -14,6 +14,12 @@ builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKnownModulesService, KnownModulesService>();
 builder.Services.AddSingleton<IModuleService, ModuleService>();
 
+// HttpClient for MFE readiness checks
+builder.Services.AddHttpClient("MfeCheck", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
+
 // Configure CORS - allow all origins for internal network
 builder.Services.AddCors(options =>
 {

@@ -11,17 +11,20 @@ public class ModulesController : ControllerBase
     private readonly IModuleService _moduleService;
     private readonly IGitHubService _gitHubService;
     private readonly IKnownModulesService _knownModulesService;
+    private readonly HttpClient _httpClient;
     private readonly ILogger<ModulesController> _logger;
 
     public ModulesController(
         IModuleService moduleService,
         IGitHubService gitHubService,
         IKnownModulesService knownModulesService,
+        IHttpClientFactory httpClientFactory,
         ILogger<ModulesController> logger)
     {
         _moduleService = moduleService;
         _gitHubService = gitHubService;
         _knownModulesService = knownModulesService;
+        _httpClient = httpClientFactory.CreateClient("MfeCheck");
         _logger = logger;
     }
 
@@ -127,4 +130,71 @@ public class ModulesController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Check if a module's MFE is ready (remoteEntry is downloadable)
+    /// </summary>
+    [HttpGet("{name}/mfe-ready")]
+    public async Task<ActionResult<MfeReadyResponse>> CheckMfeReady(string name)
+    {
+        var module = _moduleService.GetInstalledModule(name);
+        if (module == null)
+        {
+            return Ok(new MfeReadyResponse { Ready = false, Message = "Module not found" });
+        }
+
+        if (!module.MfeDeployed || module.MfeNodePort <= 0)
+        {
+            return Ok(new MfeReadyResponse { Ready = false, Message = "MFE not deployed" });
+        }
+
+        // Build the remoteEntry URL using the request host
+        var host = Request.Host.Host;
+        var remoteEntryPath = module.RemoteEntry.TrimStart('/');
+        var url = $"http://{host}:{module.MfeNodePort}/{remoteEntryPath}";
+
+        try
+        {
+            _logger.LogDebug("Checking MFE readiness at {Url}", url);
+            var response = await _httpClient.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(new MfeReadyResponse { Ready = true, Url = url });
+            }
+
+            return Ok(new MfeReadyResponse
+            {
+                Ready = false,
+                Message = $"HTTP {(int)response.StatusCode}",
+                Url = url
+            });
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogDebug("MFE not ready at {Url}: {Error}", url, ex.Message);
+            return Ok(new MfeReadyResponse
+            {
+                Ready = false,
+                Message = "Connection failed",
+                Url = url
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            return Ok(new MfeReadyResponse
+            {
+                Ready = false,
+                Message = "Request timeout",
+                Url = url
+            });
+        }
+    }
+}
+
+public class MfeReadyResponse
+{
+    public bool Ready { get; set; }
+    public string? Message { get; set; }
+    public string? Url { get; set; }
 }
