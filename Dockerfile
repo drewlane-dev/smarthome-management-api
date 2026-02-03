@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY SmarthomeApi.csproj .
+COPY SmarthomeManagementApi.csproj .
 RUN dotnet restore
 
 COPY . .
@@ -16,4 +16,4 @@ ENV ASPNETCORE_URLS=http://+:5000
 
 EXPOSE 5000
 
-ENTRYPOINT ["dotnet", "smarthome-api.dll"]
+ENTRYPOINT ["dotnet", "smarthome-management-api.dll"]

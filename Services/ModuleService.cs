@@ -128,6 +128,7 @@ public class ModuleService : IModuleService
 
         // Try to deploy the MFE container
         var mfeDeployed = false;
+        int mfeNodePort = 0;
         string? deployError = null;
 
         try
@@ -137,6 +138,17 @@ public class ModuleService : IModuleService
             {
                 deployError = "Kubernetes returned failure when applying MFE deployment";
                 _logger.LogWarning("Failed to deploy MFE container for {Name}", mfeManifest.Name);
+            }
+            else
+            {
+                // Get the assigned NodePort from the MFE service
+                var serviceName = $"{mfeManifest.Name}-mfe";
+                var nodePort = await _kubernetesService.GetServiceNodePortAsync(serviceName);
+                if (nodePort.HasValue)
+                {
+                    mfeNodePort = nodePort.Value;
+                    _logger.LogInformation("MFE service {Name} assigned NodePort: {Port}", serviceName, mfeNodePort);
+                }
             }
         }
         catch (Exception ex)
@@ -160,6 +172,7 @@ public class ModuleService : IModuleService
             Fields = fields,
             ServiceTemplate = serviceTemplate,
             MfeDeployed = mfeDeployed,
+            MfeNodePort = mfeNodePort,
             ServiceDeployed = false
         };
 
@@ -271,6 +284,14 @@ public class ModuleService : IModuleService
             };
         }
 
+        // Get the assigned NodePort from the service
+        var serviceNodePort = await _kubernetesService.GetServiceNodePortAsync(name);
+        if (serviceNodePort.HasValue)
+        {
+            module.ServiceNodePort = serviceNodePort.Value;
+            _logger.LogInformation("Service {Name} assigned NodePort: {Port}", name, serviceNodePort.Value);
+        }
+
         // Update module state
         module.ServiceDeployed = true;
         module.ServiceFieldValues = request.FieldValues;
@@ -335,7 +356,8 @@ public class ModuleService : IModuleService
                 RemoteName = module.RemoteName,
                 ExposedModule = module.ExposedModule,
                 ComponentExport = module.ComponentExport,
-                Tile = module.Tile
+                Tile = module.Tile,
+                NodePort = module.MfeNodePort
             });
         }
 

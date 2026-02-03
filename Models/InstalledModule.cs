@@ -20,7 +20,10 @@ public class InstalledModule
     public required string ExposedModule { get; set; }
     public required string ComponentExport { get; set; }
     public required TileConfig Tile { get; set; }
-    public int NodePort { get; set; }
+
+    // Dynamic NodePorts assigned by Kubernetes
+    public int MfeNodePort { get; set; }
+    public int ServiceNodePort { get; set; }
 
     // Optional fields configuration (loaded from module-fields.json)
     public List<ModuleField> Fields { get; set; } = new();

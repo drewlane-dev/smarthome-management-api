@@ -8,6 +8,7 @@ public interface IKubernetesService
     Task<bool> ApplyYamlAsync(string yaml);
     Task<bool> DeleteDeploymentAsync(string name);
     Task<PodStatusInfo?> GetPodStatusAsync(string deploymentName);
+    Task<int?> GetServiceNodePortAsync(string serviceName);
 }
 
 public class PodStatusInfo
@@ -252,6 +253,33 @@ public class KubernetesService : IKubernetesService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get pod status for: {Name}", deploymentName);
+            return null;
+        }
+    }
+
+    public async Task<int?> GetServiceNodePortAsync(string serviceName)
+    {
+        try
+        {
+            var service = await _client.CoreV1.ReadNamespacedServiceAsync(serviceName, Namespace);
+            var nodePort = service.Spec?.Ports?.FirstOrDefault()?.NodePort;
+
+            if (nodePort.HasValue)
+            {
+                _logger.LogInformation("Service {Name} has NodePort: {Port}", serviceName, nodePort.Value);
+            }
+
+            return nodePort;
+        }
+        catch (k8s.Autorest.HttpOperationException ex)
+            when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Service not found: {Name}", serviceName);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get NodePort for service: {Name}", serviceName);
             return null;
         }
     }

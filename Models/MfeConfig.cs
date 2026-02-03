@@ -24,6 +24,9 @@ public class MfeDefinition
 
     /// <summary>Tile configuration for the home screen</summary>
     public required TileConfig Tile { get; set; }
+
+    /// <summary>Dynamic NodePort assigned by Kubernetes</summary>
+    public int NodePort { get; set; }
 }
 
 public class TileConfig

@@ -12,15 +12,6 @@ public class MfeController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<MfeController> _logger;
 
-    // Map module names to their NodePort and dev port
-    private static readonly Dictionary<string, (int NodePort, int DevPort)> ModulePortMapping = new()
-    {
-        ["spotify"] = (30201, 4201),
-        ["terraria"] = (30202, 4202),
-        ["lights"] = (30203, 4203),
-        ["climate"] = (30204, 4204),
-    };
-
     public MfeController(
         IModuleService moduleService,
         IConfiguration configuration,
@@ -54,10 +45,10 @@ public class MfeController : ControllerBase
             host = $"http://{Request.Host.Host}";
         }
 
-        // Build full URLs for each MFE using NodePorts
+        // Build full URLs for each MFE using dynamic NodePorts
         foreach (var mfe in manifest.Mfes)
         {
-            mfe.RemoteEntry = BuildFullUrl(mfe.Path, mfe.RemoteEntry, host);
+            mfe.RemoteEntry = BuildFullUrl(mfe.NodePort, mfe.RemoteEntry, host);
         }
 
         _logger.LogDebug("Returning MFE manifest with {Count} deployed modules (host={Host})",
@@ -65,19 +56,12 @@ public class MfeController : ControllerBase
         return Ok(manifest);
     }
 
-    private string BuildFullUrl(string moduleName, string relativePath, string baseHost)
+    private string BuildFullUrl(int nodePort, string relativePath, string baseHost)
     {
         // If already a full URL, return as-is
         if (relativePath.StartsWith("http://") || relativePath.StartsWith("https://"))
         {
             return relativePath;
-        }
-
-        // Get NodePort for this module
-        if (!ModulePortMapping.TryGetValue(moduleName, out var ports))
-        {
-            // Default port if not mapped
-            ports = (30200, 4200);
         }
 
         // Ensure relative path starts with /
@@ -86,6 +70,12 @@ public class MfeController : ControllerBase
             relativePath = "/" + relativePath;
         }
 
-        return $"{baseHost}:{ports.NodePort}{relativePath}";
+        if (nodePort <= 0)
+        {
+            _logger.LogWarning("Module has no NodePort assigned, using path only: {Path}", relativePath);
+            return relativePath;
+        }
+
+        return $"{baseHost}:{nodePort}{relativePath}";
     }
 }
