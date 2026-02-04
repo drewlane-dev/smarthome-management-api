@@ -2,6 +2,9 @@ using SmarthomeApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Bind to all interfaces on port 5000
+builder.WebHost.UseUrls("http://*:5000");
+
 // Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -23,11 +26,12 @@ builder.Services.AddHttpClient("MfeCheck", client =>
 // Configure CORS - allow all origins for internal network
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddDefaultPolicy(policy =>
     {
         policy.AllowAnyOrigin()
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .WithExposedHeaders("Content-Disposition");
     });
 });
 
@@ -37,7 +41,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseCors("AllowAll");
+app.UseCors();
 
 app.MapControllers();
 
