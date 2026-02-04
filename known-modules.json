@@ -15,6 +15,14 @@
       "repoUrl": "https://github.com/drewlane-dev/smarthome-spotify-module",
       "icon": "music_note",
       "color": "#1DB954"
+    },
+    {
+      "name": "plex",
+      "displayName": "Plex Media Server",
+      "description": "Stream your personal media collection from anywhere",
+      "repoUrl": "https://github.com/drewlane-dev/smarthome-plex-module",
+      "icon": "live_tv",
+      "color": "#E5A00D"
     }
   ]
 }
