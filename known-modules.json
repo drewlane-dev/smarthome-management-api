@@ -31,6 +31,14 @@
       "repoUrl": "https://github.com/drewlane-dev/smarthome-pihole-module",
       "icon": "shield",
       "color": "#96060C"
+    },
+    {
+      "name": "emulator",
+      "displayName": "Game Emulator",
+      "description": "Play classic retro games in your browser with EmulatorJS",
+      "repoUrl": "https://github.com/drewlane-dev/smarthome-emulator-module",
+      "icon": "sports_esports",
+      "color": "#9B59B6"
     }
   ]
 }
