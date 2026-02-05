@@ -23,6 +23,14 @@
       "repoUrl": "https://github.com/drewlane-dev/smarthome-plex-module",
       "icon": "live_tv",
       "color": "#E5A00D"
+    },
+    {
+      "name": "pihole",
+      "displayName": "Pi-hole Ad Blocker",
+      "description": "Network-wide ad blocking for all devices on your network",
+      "repoUrl": "https://github.com/drewlane-dev/smarthome-pihole-module",
+      "icon": "shield",
+      "color": "#96060C"
     }
   ]
 }
