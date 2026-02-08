@@ -31,7 +31,7 @@ public class KubernetesService : IKubernetesService
     private readonly IKubernetes _client;
     private readonly ILogger<KubernetesService> _logger;
     private readonly string? _imagePullSecret;
-    private const string Namespace = "smarthome";
+    private const string Namespace = "default";
 
     public KubernetesService(ILogger<KubernetesService> logger, IConfiguration configuration)
     {
